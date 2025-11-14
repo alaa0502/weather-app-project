@@ -1,7 +1,6 @@
 # 🌡️ TempTrack – Simple Weather App
 
-## TempTrack is a small Streamlit app that shows the current weather for any city.
-## It includes basic conditions, maps, and a day-to-day temperature comparison.
+## TempTrack is a small Streamlit app that shows the current weather for any city. It includes basic conditions, maps, and a day-to-day temperature comparison.
 
 ## 👉 Live app:
 https://weather-app-project-temptrack.streamlit.app/
@@ -30,6 +29,19 @@ streamlit_app.py     # Main application
 logo.png             # Logo shown in the app
 settings.json        # Stored user preferences
 requirements.txt     # Dependencies
+
+## Skills Used:
+- Python (basic scripting)
+  
+- Working with JSON and REST APIs
+  
+- Timezone and datetime handling
+  
+- Simple file I/O (JSON settings)
+  
+- Streamlit UI development
+  
+- Folium and Streamlit-Folium for maps
 
 ## Run Locally
 pip install -r requirements.txt
