@@ -6,7 +6,7 @@
 https://weather-app-project-temptrack.streamlit.app/
 
 
-![App Screenshot](weatherapp.png)
+![App Screenshot](Weatherapp.png)
 
 
 ## Features
