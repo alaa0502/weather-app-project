@@ -47,6 +47,27 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+st.markdown("""
+<style>
+
+    /* LOCATION INPUT — EXACT SAME SHADE AS YOUR YELLOW CARD */
+    div[data-testid="stTextInput"] > div > div > input {
+        background-color: rgba(255, 230, 150, 0.25) !important;   /* identical */
+        border: 1px solid rgba(255, 230, 150, 0.40) !important;   /* soft border */
+        border-radius: 12px !important;                           /* same rounding */
+        padding: 10px !important;
+        font-size: 1.1rem !important;
+    }
+
+    /* Label above the input */
+    div[data-testid="stTextInput"] > div > label {
+        font-size: 1.15rem !important;
+        font-weight: 600 !important;
+        color: #333333 !important;
+    }
+
+</style>
+""", unsafe_allow_html=True)
 
 # --- SESSION STATE ---
 if "has_weather" not in st.session_state:
@@ -61,6 +82,7 @@ if "last_weather" not in st.session_state:
 # --- BASIC CONFIG ---
 API_KEY = "cf1630d90ab616adea0cb07c50e4f770"
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
+FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
 GEO_URL = "http://ip-api.com/json"
 SETTINGS_FILE = Path("settings.json")
 DEFAULT_CITY = "Mississauga"
@@ -108,28 +130,16 @@ def wind_deg_to_compass(deg: float) -> str:
 
 # ===== ICON → EMOJI HELPER =====
 def icon_to_emoji(icon_code: str) -> str:
-    """
-    Map OpenWeather icon (e.g. '01d', '10n', '13d') to a nice emoji.
-    """
     if not icon_code:
         return "🌡️"
-
-    if icon_code.startswith("01"):      # clear sky
-        return "☀️"
-    elif icon_code.startswith("02"):    # few clouds
-        return "🌤️"
-    elif icon_code.startswith(("03", "04")):  # scattered/broken clouds
-        return "☁️"
-    elif icon_code.startswith(("09", "10")):  # rain
-        return "🌧️"
-    elif icon_code.startswith("11"):    # thunderstorm
-        return "⛈️"
-    elif icon_code.startswith("13"):    # snow
-        return "❄️"
-    elif icon_code.startswith("50"):    # mist/fog
-        return "🌫️"
-    else:
-        return "🌡️"
+    if icon_code.startswith("01"): return "☀️"
+    if icon_code.startswith("02"): return "🌤️"
+    if icon_code.startswith(("03", "04")): return "☁️"
+    if icon_code.startswith(("09", "10")): return "🌧️"
+    if icon_code.startswith("11"): return "⛈️"
+    if icon_code.startswith("13"): return "❄️"
+    if icon_code.startswith("50"): return "🌫️"
+    return "🌡️"
 
 
 # ===== FETCH WEATHER (CURRENT) =====
@@ -146,12 +156,11 @@ def fetch_weather(city, api_key, units):
     wind_speed_raw = wind_raw.get("speed", 0.0)
     wind_deg = wind_raw.get("deg", 0.0)
 
-    # Convert wind speed
     if units == "metric":
-        wind_speed = wind_speed_raw * 3.6  # m/s → km/h
+        wind_speed = wind_speed_raw * 3.6
         wind_unit = "km/h"
     else:
-        wind_speed = wind_speed_raw        # already mph
+        wind_speed = wind_speed_raw
         wind_unit = "mph"
 
     return {
@@ -171,13 +180,75 @@ def fetch_weather(city, api_key, units):
     }
 
 
+# ===== FETCH WEEKLY FORECAST =====
+def fetch_weekly_forecast(lat, lon):
+    r = requests.get(
+        FORECAST_URL,
+        params={
+            "lat": lat,
+            "lon": lon,
+            "appid": API_KEY,
+            "units": "metric",
+        },
+        timeout=20,
+    )
+    r.raise_for_status()
+    data = r.json()
+
+    daily = {}
+    for entry in data["list"]:
+        date = entry["dt_txt"].split(" ")[0]
+        temp = entry["main"]["temp"]
+        icon = entry["weather"][0]["icon"]
+        if date not in daily:
+            daily[date] = {"temp": temp, "icon": icon}
+
+    result = []
+    for date, v in list(daily.items())[:7]:
+        result.append({
+            "date": date,
+            "temp": int(v["temp"]),
+            "icon": v["icon"]
+        })
+
+    return result
+
+
+# ===== WEEKLY FORECAST SIDEBAR RENDER =====
+def show_weekly_forecast(forecast, units):
+    if not forecast:
+        return
+
+    st.sidebar.subheader("📅 Your Week Ahead")
+
+    for day in forecast:
+        emoji = icon_to_emoji(day["icon"])
+        temp = f"{day['temp']}°{'C' if units=='metric' else 'F'}"
+
+        st.sidebar.markdown(
+            f"""
+            <div style="
+                background-color:#F7F7F7;
+                padding:10px;
+                border-radius:10px;
+                margin-bottom:8px;
+                text-align:center;
+                font-size:1.1rem;">
+                <b>{day['date']}</b><br>
+                <span style="font-size:1.8rem;">{emoji}</span><br>
+                {temp}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
 # ===== DISPLAY WEATHER =====
 def show_weather(w, units):
     deg_unit = "°C" if units == "metric" else "°F"
     icon_url = f"http://openweathermap.org/img/wn/{w['icon']}@2x.png"
     emoji = icon_to_emoji(w["icon"])
 
-    # Top layout: left info, right big temp + emoji
     col_left, col_right = st.columns([2, 1])
 
     with col_left:
@@ -189,7 +260,6 @@ def show_weather(w, units):
         )
 
     with col_right:
-        # Big temperature with emoji
         st.markdown(
             f"""
             <div style="text-align:center; font-size:2.6rem; font-weight:700;">
@@ -198,15 +268,12 @@ def show_weather(w, units):
             """,
             unsafe_allow_html=True,
         )
-        # Small official icon under it (optional but cute)
         st.image(icon_url, width=72)
 
-    # Metrics row (keep it – feels like / humidity)
     c1, c2 = st.columns(2)
     c1.metric("Feels Like", f"{w['feels_like']:.1f}{deg_unit}")
     c2.metric("Humidity", f"{w['humidity']}%")
 
-    # Time: user vs location
     user_now = datetime.now().astimezone()
     utc_now = datetime.now(tz=tz.tzutc())
     loc_now = utc_now.astimezone(tz.tzoffset(None, w["timezone_seconds"]))
@@ -215,9 +282,8 @@ def show_weather(w, units):
     st.write("**Location time:**", loc_now.strftime("%A, %b %d, %I:%M %p"))
 
 
-# ===== HISTORICAL AVERAGE (10 YEARS, SAME DATE) =====
+# ===== HISTORICAL AVERAGE =====
 def fetch_historical_average(lat, lon):
-    """Get ~10-year average temperature for today's date using Open-Meteo."""
     today = datetime.now()
     month = today.month
     day = today.day
@@ -241,63 +307,68 @@ def fetch_historical_average(lat, lon):
         temps = data.get("daily", {}).get("temperature_2m_mean", [])
         if not temps:
             return None
-        return sum(temps) / len(temps)  # °C
+        return sum(temps) / len(temps)
     except Exception:
         return None
 
 
+# ===== FRIENDLY COMPARISON (NO TITLE + YELLOW CARD) =====
 def show_historical_comparison(w, units):
-    """Compare today's temp with ~10-year average for this date."""
     lat = w["lat"]
     lon = w["lon"]
     current_temp = w["temp"]
 
     avg_temp_c = fetch_historical_average(lat, lon)
     if avg_temp_c is None:
-        st.info("Historical climate data is not available for this location.")
         return
 
     if units == "metric":
-        current = current_temp
         avg_display = avg_temp_c
-        diff = current - avg_display
+        diff = current_temp - avg_display
         unit_label = "°C"
     else:
-        avg_f = avg_temp_c * 9.0 / 5.0 + 32.0
-        avg_display = avg_f
+        avg_display = avg_temp_c * 9.0 / 5.0 + 32.0
         diff = current_temp - avg_display
         unit_label = "°F"
 
+    box_style = (
+        "background-color: rgba(255, 230, 150, 0.25);"
+        "padding: 15px;"
+        "border-radius: 12px;"
+        "margin-top: 10px;"
+        "margin-bottom: 15px;"
+        "text-align: center;"
+        "font-size: 1.15rem;"
+        "line-height: 1.5;"
+    )
+
     if abs(diff) < 1:
-        st.success(
-            f"🌤 Today’s temperature is typical for this date "
-            f"(10-year average: {avg_display:.1f}{unit_label})."
+        msg = (
+            f"<b>🌤️ Pretty typical for this time of year</b><br>"
+            f"Average for today: {avg_display:.1f}{unit_label}"
         )
     elif diff > 0:
-        st.warning(
-            f"🔥 Today is {diff:.1f}{unit_label} warmer than usual for this date "
-            f"(10-year average: {avg_display:.1f}{unit_label})."
+        msg = (
+            f"<b>🔥 Warmer than usual today</b><br>"
+            f"About {diff:.1f}{unit_label} warmer than the usual {avg_display:.1f}{unit_label}."
         )
     else:
-        st.info(
-            f"❄️ Today is {abs(diff):.1f}{unit_label} colder than usual for this date "
-            f"(10-year average: {avg_display:.1f}{unit_label})."
+        msg = (
+            f"<b>❄️ Colder than usual today</b><br>"
+            f"About {abs(diff):.1f}{unit_label} colder than the usual {avg_display:.1f}{unit_label}."
         )
 
+    st.markdown(f"<div style='{box_style}'>{msg}</div>", unsafe_allow_html=True)
 
-# ===== SIMPLE LOCATION MAP (ZOOMED IN) =====
+
+# ===== SIMPLE LOCATION MAP =====
 def show_location_map(w):
     st.subheader("🗺 City location")
-    # zoom=10 to be closer to the city
     st.map({"lat": [w["lat"]], "lon": [w["lon"]]}, zoom=10)
 
 
-# ===== PRETTY WIND MAP (LIVE, WINDY) =====
+# ===== WIND MAP =====
 def show_wind_map_pretty(lat, lon):
-    """
-    Embed Windy.com wind layer.
-    Shows moving arrows and colours for wind speed.
-    """
     windy_html = f"""
     <iframe width="700" height="550"
         src="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}
@@ -309,13 +380,12 @@ def show_wind_map_pretty(lat, lon):
     components.html(windy_html, height=550)
 
 
-# ===== RADAR MAP (RAINVIEWER VIA LEAFLET) =====
+# ===== RADAR MAP =====
 def show_radar_map(lat, lon):
-    st.subheader("🌧 Radar view (RainViewer)")
+    st.subheader("🌧 Radar view")
 
     m = folium.Map(location=[lat, lon], zoom_start=7)
 
-    # RainViewer radar tiles
     folium.raster_layers.TileLayer(
         tiles=(
             "https://tilecache.rainviewer.com/v2/radar/nowcast_0/512/{z}/{x}/{y}/2/1_1.png"
@@ -341,7 +411,7 @@ def main():
     st.image("logo.png", width=380)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ----- SIDEBAR -----
+    # Sidebar settings
     st.sidebar.header("Settings")
 
     units_label = st.sidebar.radio(
@@ -360,7 +430,6 @@ def main():
 
     save_settings(cfg)
 
-    # ----- CITY INPUT -----
     st.subheader("Choose a location")
 
     detected_city = detect_city_from_ip()
@@ -378,7 +447,6 @@ def main():
     else:
         st.write("➡️ Please enter a city (e.g., `Lod,IL`).")
 
-    # ----- GET WEATHER BUTTON + AUTO REFRESH -----
     weather_to_show = None
     pressed = st.button("Get Weather")
 
@@ -410,13 +478,17 @@ def main():
     except Exception as e:
         st.error(f"Error: {e}")
 
-    # ----- SHOW WEATHER + EXTRAS -----
+    # --- SHOW CURRENT WEATHER + FORECAST ---
     if weather_to_show:
+
+        # Show forecast in sidebar
+        forecast = fetch_weekly_forecast(weather_to_show["lat"], weather_to_show["lon"])
+        show_weekly_forecast(forecast, units)
+
         st.divider()
         show_weather(weather_to_show, units)
 
         st.divider()
-        st.subheader("📊 Historical Climate Comparison")
         show_historical_comparison(weather_to_show, units)
 
         st.divider()
@@ -424,7 +496,7 @@ def main():
             show_location_map(weather_to_show)
         elif map_mode == "Wind map (live)":
             show_wind_map_pretty(weather_to_show["lat"], weather_to_show["lon"])
-        else:  # Radar
+        else:
             show_radar_map(weather_to_show["lat"], weather_to_show["lon"])
 
 
