@@ -1,8 +1,9 @@
 # 🌡️ TempTrack – Simple Weather App
 
-## TempTrack is a small Streamlit app that shows the current weather for any city. It includes basic conditions, maps, and a day-to-day temperature comparison.
+## TempTrack is a Streamlit-based weather app - a rrquired first project of my Data science cource with a few added features of my own.
+## It shows real-time weather, a 7-day forecast, interactive maps, and a friendly “warmer/colder than usual” comparison based on 10-year climate data.
 
-## 👉 Live app:
+## 👉 Try the app:
 https://weather-app-project-temptrack.streamlit.app/
 
 
@@ -15,18 +16,27 @@ https://weather-app-project-temptrack.streamlit.app/
 
 - Local time and the time in the selected location
 
-- Auto-detects your city when possible
+- Forecast a week ahead
 
 - Location map, wind map, and radar view
 
-- 10-year average temperature comparison for today
+- 10-year average temperature comparison for today ("warmer\ colder than usual")
 
-- Saves your last used location and units (°C / °F)
+- Saves your last used location
+- 
+- choose units (°C / °F)
+- 
+## Limitations
+
+-I wanted the app to automatically use the user’s real location as the default, but this requires paid APIs, so it isn’t supported.
+
+-Some advanced features (hourly forecasts, weather alerts, more interactive maps, etc.) require paid plans so I did not include them.
 
 ## Project Structure
 
 streamlit_app.py     # Main application
-logo.png             # Logo shown in the app
+logo.png             # Logo of app
+Weatherapp.png       # app preview above
 settings.json        # Stored user preferences
 requirements.txt     # Dependencies
 
