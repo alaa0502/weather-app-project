@@ -59,7 +59,11 @@ streamlit run streamlit_app.py
 
 ## Requirements
 streamlit
+
 requests
+
 python-dateutil
+
 folium
+
 streamlit-folium
