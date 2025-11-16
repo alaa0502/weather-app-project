@@ -47,27 +47,30 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.markdown("""
-<style>
 
-    /* LOCATION INPUT — EXACT SAME SHADE AS YOUR YELLOW CARD */
-    div[data-testid="stTextInput"] > div > div > input {
-        background-color: rgba(255, 230, 150, 0.25) !important;   /* identical */
-        border: 1px solid rgba(255, 230, 150, 0.40) !important;   /* soft border */
-        border-radius: 12px !important;                           /* same rounding */
-        padding: 10px !important;
-        font-size: 1.1rem !important;
-    }
+# --- CUSTOM CSS: LOCATION INPUT MATCHES YELLOW CARD ---
+st.markdown(
+    """
+    <style>
+        /* Location text box */
+        div[data-testid="stTextInput"] > div > div > input {
+            background-color: rgba(255, 230, 150, 0.25) !important;
+            border: 1px solid rgba(255, 230, 150, 0.40) !important;
+            border-radius: 12px !important;
+            padding: 10px !important;
+            font-size: 1.1rem !important;
+        }
 
-    /* Label above the input */
-    div[data-testid="stTextInput"] > div > label {
-        font-size: 1.15rem !important;
-        font-weight: 600 !important;
-        color: #333333 !important;
-    }
-
-</style>
-""", unsafe_allow_html=True)
+        /* Label above the input */
+        div[data-testid="stTextInput"] > div > label {
+            font-size: 1.15rem !important;
+            font-weight: 600 !important;
+            color: #333333 !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- SESSION STATE ---
 if "has_weather" not in st.session_state:
@@ -83,7 +86,6 @@ if "last_weather" not in st.session_state:
 API_KEY = "cf1630d90ab616adea0cb07c50e4f770"
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
-GEO_URL = "http://ip-api.com/json"
 SETTINGS_FILE = Path("settings.json")
 DEFAULT_CITY = "Mississauga"
 DEFAULT_UNITS = "metric"
@@ -108,17 +110,6 @@ def save_settings(cfg):
     SETTINGS_FILE.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
 
-    # On Streamlit Cloud, IP-based detection returns the server location
-    # (e.g., Dallas), not the user. So we just use the saved default.
-    default_location = cfg["default_city"]
-
-    city = st.text_input(
-        "Location (you can keep this or edit it):",
-        value=default_location,
-        placeholder="e.g., Toronto,CA or Paris,FR",
-    ).strip()
-
-
 # ===== WIND DIRECTION HELPER =====
 def wind_deg_to_compass(deg: float) -> str:
     dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -130,13 +121,20 @@ def wind_deg_to_compass(deg: float) -> str:
 def icon_to_emoji(icon_code: str) -> str:
     if not icon_code:
         return "🌡️"
-    if icon_code.startswith("01"): return "☀️"
-    if icon_code.startswith("02"): return "🌤️"
-    if icon_code.startswith(("03", "04")): return "☁️"
-    if icon_code.startswith(("09", "10")): return "🌧️"
-    if icon_code.startswith("11"): return "⛈️"
-    if icon_code.startswith("13"): return "❄️"
-    if icon_code.startswith("50"): return "🌫️"
+    if icon_code.startswith("01"):
+        return "☀️"
+    if icon_code.startswith("02"):
+        return "🌤️"
+    if icon_code.startswith(("03", "04")):
+        return "☁️"
+    if icon_code.startswith(("09", "10")):
+        return "🌧️"
+    if icon_code.startswith("11"):
+        return "⛈️"
+    if icon_code.startswith("13"):
+        return "❄️"
+    if icon_code.startswith("50"):
+        return "🌫️"
     return "🌡️"
 
 
@@ -155,10 +153,10 @@ def fetch_weather(city, api_key, units):
     wind_deg = wind_raw.get("deg", 0.0)
 
     if units == "metric":
-        wind_speed = wind_speed_raw * 3.6
+        wind_speed = wind_speed_raw * 3.6  # m/s → km/h
         wind_unit = "km/h"
     else:
-        wind_speed = wind_speed_raw
+        wind_speed = wind_speed_raw       # already mph
         wind_unit = "mph"
 
     return {
@@ -203,11 +201,13 @@ def fetch_weekly_forecast(lat, lon):
 
     result = []
     for date, v in list(daily.items())[:7]:
-        result.append({
-            "date": date,
-            "temp": int(v["temp"]),
-            "icon": v["icon"]
-        })
+        result.append(
+            {
+                "date": date,
+                "temp": int(v["temp"]),
+                "icon": v["icon"],
+            }
+        )
 
     return result
 
@@ -221,7 +221,7 @@ def show_weekly_forecast(forecast, units):
 
     for day in forecast:
         emoji = icon_to_emoji(day["icon"])
-        temp = f"{day['temp']}°{'C' if units=='metric' else 'F'}"
+        temp = f"{day['temp']}°{'C' if units == 'metric' else 'F'}"
 
         st.sidebar.markdown(
             f"""
@@ -237,7 +237,7 @@ def show_weekly_forecast(forecast, units):
                 {temp}
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
 
@@ -348,12 +348,14 @@ def show_historical_comparison(w, units):
     elif diff > 0:
         msg = (
             f"<b>🔥 Warmer than usual today</b><br>"
-            f"About {diff:.1f}{unit_label} warmer than the usual {avg_display:.1f}{unit_label}."
+            f"About {diff:.1f}{unit_label} warmer than the usual "
+            f"{avg_display:.1f}{unit_label}."
         )
     else:
         msg = (
             f"<b>❄️ Colder than usual today</b><br>"
-            f"About {abs(diff):.1f}{unit_label} colder than the usual {avg_display:.1f}{unit_label}."
+            f"About {abs(diff):.1f}{unit_label} colder than the usual "
+            f"{avg_display:.1f}{unit_label}."
         )
 
     st.markdown(f"<div style='{box_style}'>{msg}</div>", unsafe_allow_html=True)
@@ -386,7 +388,8 @@ def show_radar_map(lat, lon):
 
     folium.raster_layers.TileLayer(
         tiles=(
-            "https://tilecache.rainviewer.com/v2/radar/nowcast_0/512/{z}/{x}/{y}/2/1_1.png"
+            "https://tilecache.rainviewer.com/v2/radar/nowcast_0/"
+            "512/{z}/{x}/{y}/2/1_1.png"
         ),
         attr="RainViewer",
         name="Rain Radar",
@@ -428,10 +431,10 @@ def main():
 
     save_settings(cfg)
 
+    # --- Location input (no IP detection, just saved default) ---
     st.subheader("Choose a location")
 
-    detected_city = detect_city_from_ip()
-    default_location = detected_city or cfg["default_city"]
+    default_location = cfg["default_city"]
 
     city = st.text_input(
         "Location (you can keep this or edit it):",
@@ -478,9 +481,10 @@ def main():
 
     # --- SHOW CURRENT WEATHER + FORECAST ---
     if weather_to_show:
-
         # Show forecast in sidebar
-        forecast = fetch_weekly_forecast(weather_to_show["lat"], weather_to_show["lon"])
+        forecast = fetch_weekly_forecast(
+            weather_to_show["lat"], weather_to_show["lon"]
+        )
         show_weekly_forecast(forecast, units)
 
         st.divider()
@@ -493,7 +497,9 @@ def main():
         if map_mode == "Location only":
             show_location_map(weather_to_show)
         elif map_mode == "Wind map (live)":
-            show_wind_map_pretty(weather_to_show["lat"], weather_to_show["lon"])
+            show_wind_map_pretty(
+                weather_to_show["lat"], weather_to_show["lon"]
+            )
         else:
             show_radar_map(weather_to_show["lat"], weather_to_show["lon"])
 
