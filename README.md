@@ -1,6 +1,6 @@
 # 🌡️ TempTrack – Simple Weather App
 
-## TempTrack is a Streamlit-based weather app - a rrquired first project of my Data science cource with a few added features of my own.
+## TempTrack is a Streamlit-based weather app - a required first project of my Data science cource with a few added features of my own.
 ## It shows real-time weather, a 7-day forecast, interactive maps, and a friendly “warmer/colder than usual” comparison based on 10-year climate data.
 
 ## 👉 Try the app:
