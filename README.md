@@ -23,9 +23,9 @@ https://weather-app-project-temptrack.streamlit.app/
 - 10-year average temperature comparison for today ("warmer\ colder than usual")
 
 - Saves your last used location
-- 
+  
 - choose units (°C / °F)
-- 
+  
 ## Limitations
 
 -I wanted the app to automatically use the user’s real location as the default, but this requires paid APIs, so it isn’t supported.
