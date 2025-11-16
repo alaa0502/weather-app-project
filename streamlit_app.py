@@ -108,17 +108,15 @@ def save_settings(cfg):
     SETTINGS_FILE.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
 
-# ===== DETECT CITY FROM IP =====
-def detect_city_from_ip():
-    try:
-        r = requests.get(GEO_URL, timeout=5)
-        r.raise_for_status()
-        d = r.json()
-        if d.get("status") == "success":
-            return f"{d.get('city')},{d.get('countryCode')}"
-    except Exception:
-        pass
-    return None
+    # On Streamlit Cloud, IP-based detection returns the server location
+    # (e.g., Dallas), not the user. So we just use the saved default.
+    default_location = cfg["default_city"]
+
+    city = st.text_input(
+        "Location (you can keep this or edit it):",
+        value=default_location,
+        placeholder="e.g., Toronto,CA or Paris,FR",
+    ).strip()
 
 
 # ===== WIND DIRECTION HELPER =====
